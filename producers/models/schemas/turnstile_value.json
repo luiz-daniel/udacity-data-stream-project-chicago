@@ -1,0 +1,5 @@
+{
+  "station_id": "int",
+  "station_name": "string",
+  "line": "string"
+}

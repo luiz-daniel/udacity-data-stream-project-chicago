@@ -8,8 +8,7 @@ import urllib.parse
 
 import requests
 
-# from models.producer import Producer
-from producer import Producer
+from producers.models.producer import Producer
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class Weather(Producer):
     def __init__(self, month):
 
         super().__init__(
-            topic_name="com.udacity.project.chicago.weather",
+            topic_name="org.chicago.cta.weather.v1",
             key_schema=Weather.key_schema,
             value_schema=Weather.value_schema,
             num_partitions=2,
@@ -67,7 +66,6 @@ class Weather(Producer):
     def run(self, month):
         self._set_weather(month)
 
-        logger.info("weather kafka proxy integration incomplete - skipping")
         resp = requests.post(
             f"{Weather.rest_proxy_url}/topics/{self.topic_name}",
             headers={"Content-Type": "application/vnd.kafka.json.v2+json"},
@@ -77,15 +75,17 @@ class Weather(Producer):
                     "value_schema": self.value_schema,
                     "records": [
                         {
-                            "temperature": self.temp,
-                            "status": self.status
+                            "key": {"timestamp": self.time_millis()},
+                            "value": {
+                                "temperature": self.temp,
+                                "status": self.status
+                            }
                         }
                     ]
                 }
             ),
         )
         resp.raise_for_status()
-
         logger.debug(
             "sent weather data to kafka, temp: %s, status: %s",
             self.temp,

@@ -24,7 +24,7 @@ class Producer:
         self.num_replicas = num_replicas
 
         self.broker_properties = {
-            "bootstrap.servers": "PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093,PLAINTEXT://localhost:9094",
+            "bootstrap.servers": "PLAINTEXT://localhost:9092",
             "schema.registry.url": "http://localhost:8081/"
         }
 
@@ -37,17 +37,16 @@ class Producer:
 
     def create_topic(self):
 
-        client = AdminClient(self.broker_properties)
+        client = AdminClient({"bootstrap.servers": self.broker_properties["bootstrap.servers"]})
+
+        # checking if the topic already exists in the server to bypass creation and exception
         topics_list = client.list_topics(timeout=5)
-        if set(t.topic for t in iter(topics_list.topics.values())) is False:
+        if self.topic_name in set(t.topic for t in iter(topics_list.topics.values())) is False:
             creation = client.create_topics([
-                NewTopic(topic=self.topic_name, num_partitions=self.num_partitions,
-                         replication_factor=self.num_replicas,
-                         config={"cleanup.policy": "delete",
-                                 "compression.type": "lz4",
-                                 "delete.retention.ms": "2000",
-                                 "file.delete.delay.ms": "2000",
-                                 })
+                NewTopic(
+                    topic=self.topic_name,
+                    num_partitions=self.num_partitions,
+                    replication_factor=self.num_replicas)
             ])
             for topic, future in creation.items():
                 try:
@@ -55,7 +54,6 @@ class Producer:
                     logger.info("topic creation completed")
                 except Exception as e:
                     logger.error(f"topic creation failed for topic {self.topic_name}: {e}")
-
 
     def close(self):
         logger.info("waiting producer to finish pooling messages")

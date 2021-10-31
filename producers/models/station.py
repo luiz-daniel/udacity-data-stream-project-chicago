@@ -7,7 +7,6 @@ from confluent_kafka import avro
 from producers.models import Turnstile
 from producers.models.producer import Producer
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,13 +20,13 @@ class Station(Producer):
         self.name = name
         station_name = (
             self.name.lower()
-            .replace("/", "_and_")
-            .replace(" ", "_")
-            .replace("-", "_")
-            .replace("'", "")
+                .replace("/", "_and_")
+                .replace(" ", "_")
+                .replace("-", "_")
+                .replace("'", "")
         )
 
-        topic_name = f"com.udacity.project.chicago.station.{station_name}"
+        topic_name = f"org.chicago.cta.station.arrivals.v1"
         super().__init__(
             topic_name,
             key_schema=Station.key_schema,
@@ -44,21 +43,20 @@ class Station(Producer):
         self.b_train = None
         self.turnstile = Turnstile(self)
 
-
     def run(self, train, direction, prev_station_id, prev_direction):
         """Simulates train arrivals at this station"""
         self.producer.produce(
-           topic=self.topic_name,
-           key={"timestamp": self.time_millis()},
-           value={
-               "station_id": self.station_id,
-               "train_id": train.train_id,
-               "direction": direction,
-               "line": self.color,
-               "train_status": train.status,
-               "prev_station_id": prev_station_id,
-               "prev_direction": prev_direction
-           }, value_schema=Station.key_schema
+            topic=self.topic_name,
+            key={"timestamp": self.time_millis()},
+            value={
+                "station_id": self.station_id,
+                "train_id": train.train_id,
+                "direction": direction,
+                "line": self.color.name,
+                "train_status": train.status.name,
+                "prev_station_id": prev_station_id if prev_station_id is not None else 0,
+                "prev_direction": prev_direction if prev_direction is not None else ""
+            }, value_schema=Station.value_schema, key_schema=Station.key_schema
         )
         logger.info("arrival event sent")
 

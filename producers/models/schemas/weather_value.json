@@ -1,4 +1,15 @@
 {
-  "temperature":"double",
-  "status":"double"
+  "type": "record",
+  "name": "weather.value",
+  "namespace": "com.udacity",
+  "fields": [
+    {
+      "name": "temperature",
+      "type": "double"
+    },
+    {
+      "name": "status",
+      "type": "double"
+    }
+  ]
 }

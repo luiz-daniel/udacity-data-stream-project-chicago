@@ -24,7 +24,8 @@ class Producer:
         self.num_replicas = num_replicas
 
         self.broker_properties = {
-            "bootstrap.servers": "PLAINTEXT://localhost:9092",
+            # "bootstrap.servers": "PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093,PLAINTEXT://localhost:9094",
+            "bootstrap.servers": "PLAINTEXT://localhost:9092",  # the only host working is 9092
             "schema.registry.url": "http://localhost:8081/"
         }
 
@@ -33,27 +34,29 @@ class Producer:
             self.create_topic()
             Producer.existing_topics.add(self.topic_name)
 
-        self.producer = AvroProducer(self.broker_properties)
+        self.producer = AvroProducer(self.broker_properties,
+                                     default_key_schema=self.key_schema,
+                                     default_value_schema=self.value_schema)
 
     def create_topic(self):
 
         client = AdminClient({"bootstrap.servers": self.broker_properties["bootstrap.servers"]})
 
-        # checking if the topic already exists in the server to bypass creation and exception
-        topics_list = client.list_topics(timeout=5)
-        if self.topic_name in set(t.topic for t in iter(topics_list.topics.values())) is False:
-            creation = client.create_topics([
-                NewTopic(
-                    topic=self.topic_name,
-                    num_partitions=self.num_partitions,
-                    replication_factor=self.num_replicas)
-            ])
-            for topic, future in creation.items():
-                try:
-                    future.result()
-                    logger.info("topic creation completed")
-                except Exception as e:
-                    logger.error(f"topic creation failed for topic {self.topic_name}: {e}")
+        # # checking if the topic already exists in the server to bypass creation and exception
+        # topics_list = client.list_topics(timeout=5)
+        # if self.topic_name in set(t.topic for t in iter(topics_list.topics.values())) is False:
+        creation = client.create_topics([
+            NewTopic(
+                topic=self.topic_name,
+                num_partitions=self.num_partitions,
+                replication_factor=self.num_replicas)
+        ])
+        for topic, future in creation.items():
+            try:
+                future.result()
+                logger.info("topic creation completed")
+            except Exception as e:
+                logger.error(f"topic creation failed for topic {self.topic_name}: {e}")
 
     def close(self):
         logger.info("waiting producer to finish pooling messages")

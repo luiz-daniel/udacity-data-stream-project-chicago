@@ -30,6 +30,7 @@ class KafkaConsumer:
         self.offset_earliest = offset_earliest
 
         self.broker_properties = {
+            # "bootstrap.servers": "PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093,PLAINTEXT://localhost:9094",
             "bootstrap.servers": "PLAINTEXT://localhost:9092",
             "group.id": f"{self.topic_name_pattern}",
             "default.topic.config": {"auto.offset.reset": "earliest"}
@@ -57,7 +58,7 @@ class KafkaConsumer:
         # logger.info("on_assign is incomplete - skipping")
         for partition in partitions:
             if self.offset_earliest is True:
-                partitions.offset = confluent_kafka.OFFSET_BEGINNING
+                partition.offset = confluent_kafka.OFFSET_BEGINNING
 
         logger.info("partitions assigned for %s", self.topic_name_pattern)
         consumer.assign(partitions)
@@ -78,15 +79,16 @@ class KafkaConsumer:
         # is retrieved.
         #
         try:
-            message = self.consumer.poll(timeout=1)
+            message = self.consumer.poll(self.consume_timeout)
             if message is not None:
                 self.message_handler(message)
-                return
+                return 1
             else:
                 logger.debug("No message received from topic")
-                return
-        except SerializerError as e:
+                return 0
+        except Exception as e:
             logger.error(f"Message deserialization failed for {message}: {e}")
+            return 0
 
     def close(self):
         """Cleans up any open kafka consumers"""

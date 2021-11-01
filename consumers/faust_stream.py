@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 # Faust will ingest records from Kafka in this format
-@dataclass
 class Station(faust.Record):
     stop_id: int
     direction_id: str
@@ -23,7 +22,6 @@ class Station(faust.Record):
 
 
 # Faust will produce records to Kafka in this format
-@dataclass
 class TransformedStation(faust.Record):
     station_id: int
     station_name: str
@@ -35,13 +33,13 @@ class TransformedStation(faust.Record):
 #   places it into a new topic with only the necessary information.
 app = faust.App("stations-stream", broker="kafka://localhost:9092", store="memory://")
 # TODO: Define the input Kafka Topic. Hint: What topic did Kafka Connect output to?
-topic = app.topic("org.chicago.cta.station", value_type=Station)
+topic = app.topic("org.chicago.cta.stations", value_type=Station)
 # TODO: Define the output Kafka Topic
 out_topic = app.topic("org.chicago.cta.stations.table.v1", partitions=1)
 # TODO: Define a Faust Table
 table = app.Table(
     "org.chicago.cta.stations.table.v1",
-    default=int,
+    default=TransformedStation,
     partitions=1,
     changelog_topic=out_topic,
 )
@@ -57,13 +55,15 @@ table = app.Table(
 @app.agent(topic)
 async def transform_station(stations):
     async for station in stations:
+
         trans_station = TransformedStation(
             station_id=station.station_id,
             station_name=station.station_name,
             order=station.order,
-            line=station.red if station.red is not None else station.blue if station.blue is not None else station.green
+            line='red' if station.red else 'blue' if station.blue else 'green'
         )
-        await out_topic.send(key=station.station_id, value=trans_station)
+        table[trans_station.station_id] = trans_station
+        # await out_topic.send(key=station.station_id, value=trans_station)
 
 
 if __name__ == "__main__":

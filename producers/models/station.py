@@ -26,7 +26,7 @@ class Station(Producer):
                 .replace("'", "")
         )
 
-        topic_name = f"org.chicago.cta.station.arrivals.v1"
+        topic_name = "org.chicago.cta.station.arrivals.v1"
         super().__init__(
             topic_name,
             key_schema=Station.key_schema,
@@ -47,6 +47,8 @@ class Station(Producer):
         """Simulates train arrivals at this station"""
         self.producer.produce(
             topic=self.topic_name,
+            value_schema=Station.value_schema,
+            key_schema=Station.key_schema,
             key={"timestamp": self.time_millis()},
             value={
                 "station_id": self.station_id,
@@ -54,9 +56,9 @@ class Station(Producer):
                 "direction": direction,
                 "line": self.color.name,
                 "train_status": train.status.name,
-                "prev_station_id": prev_station_id if prev_station_id is not None else 0,
-                "prev_direction": prev_direction if prev_direction is not None else ""
-            }, value_schema=Station.value_schema, key_schema=Station.key_schema
+                "prev_station_id": prev_station_id,
+                "prev_direction": prev_direction
+            }
         )
         logger.info("arrival event sent")
 

@@ -33,7 +33,10 @@ class KafkaConsumer:
             # "bootstrap.servers": "PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093,PLAINTEXT://localhost:9094",
             "bootstrap.servers": "PLAINTEXT://localhost:9092",
             "group.id": f"{self.topic_name_pattern}",
-            "default.topic.config": {"auto.offset.reset": "earliest"}
+            "default.topic.config": {
+                "auto.offset.reset":
+                    "earliest" if offset_earliest else "latest"  # defining offset based on input parameter
+            }
         }
 
         # TODO: Create the Consumer, using the appropriate type.
